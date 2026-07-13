@@ -5,13 +5,12 @@ from discord.ext import commands
 from deep_translator import GoogleTranslator
 from keep_alive import keep_alive
 
-# Token kontrolü
+# Token
 TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 if not TOKEN:
-    print("Token bulunamadı!")
     sys.exit(1)
 
-# ID listesi (Asla silinmeyecek)
+# Rol ID'leri
 LANG_ROLES = {
     1526232723029758073: "az", 1526233376678481920: "tr",
     1526233442616868974: "en", 1526233508610310256: "es",
@@ -20,21 +19,21 @@ LANG_ROLES = {
     1526233677053562890: "hi", 1526233633650901132: "ar",
 }
 
-# Bot kurulumu (Intents eksiksiz)
+# Intents tanımlamaları (Çok Önemli)
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync() # Sağ tık menüsünü aktif et
+    # Komutların Discord'a kaydedilmesi
+    await bot.tree.sync()
     print(f"Bot Hazır: {bot.user}")
 
-# Mesajın sağ tık menüsüne eklenen komut
 @bot.tree.context_menu(name="Mesajı Çevir")
 async def translate_message(interaction: discord.Interaction, message: discord.Message):
-    # Dil seçimi
     lang = "en"
     for r in interaction.user.roles:
         if r.id in LANG_ROLES:
@@ -45,7 +44,7 @@ async def translate_message(interaction: discord.Interaction, message: discord.M
         translated = GoogleTranslator(source="auto", target=lang).translate(message.content)
         await interaction.response.send_message(f"**🌐 Çeviri:**\n{translated}", ephemeral=True)
     except Exception as e:
-        await interaction.response.send_message(f"Bir hata oluştu: {e}", ephemeral=True)
+        await interaction.response.send_message(f"Hata: {e}", ephemeral=True)
 
 if __name__ == "__main__":
     keep_alive()
