@@ -6,14 +6,13 @@ from discord.ui import View, Button
 from deep_translator import GoogleTranslator
 from keep_alive import keep_alive
 
-# Discord Token'ı güvenli bir şekilde oku
+# Token okuma
 TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
-
 if not TOKEN:
-    print("HATA: DISCORD_BOT_TOKEN bulunamadı! Railway Variables kısmını kontrol et.")
+    print("HATA: DISCORD_BOT_TOKEN bulunamadı!")
     sys.exit(1)
 
-# Rol ID'leri (Senin orijinal listen)
+# Rol ID'leri
 LANG_ROLES = {
     1526232723029758073: "az",
     1526233376678481920: "tr",
@@ -59,10 +58,15 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    if message.author.bot:
+    # Kendi mesajlarını ve bot mesajlarını yok say
+    if message.author == bot.user:
         return
+    
+    # Sadece komut olmayan metin mesajları için çalış
     if message.content and not message.content.startswith("!"):
         await message.channel.send("Bu mesajı çevirmek için butona bas.", view=TV(message.content))
+    
+    # Komutların çalışması için gerekli
     await bot.process_commands(message)
 
 if __name__ == "__main__":
