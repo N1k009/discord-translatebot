@@ -2,7 +2,6 @@ import discord
 import os
 import sys
 from discord.ext import commands
-from discord.ui import View, Button
 from deep_translator import GoogleTranslator
 from keep_alive import keep_alive
 
@@ -25,31 +24,25 @@ LANG_ROLES = {
     1526233633650901132: "ar",
 }
 
+# Dil etiketi ceviri
+LANG_LABELS = {
+    "az": {"user_msg": "İstifadəçi Mesajı", "translation": "Tərcümə"},
+    "tr": {"user_msg": "Kullanıcı Mesajı", "translation": "Çeviri"},
+    "en": {"user_msg": "User Message", "translation": "Translation"},
+    "es": {"user_msg": "Mensaje del Usuario", "translation": "Traducción"},
+    "fr": {"user_msg": "Message de l'Utilisateur", "translation": "Traduction"},
+    "ru": {"user_msg": "Сообщение пользователя", "translation": "Перевод"},
+    "de": {"user_msg": "Benutzernachricht", "translation": "Übersetzung"},
+    "zh-CN": {"user_msg": "用户消息", "translation": "翻译"},
+    "hi": {"user_msg": "उपयोगकर्ता संदेश", "translation": "अनुवाद"},
+    "ar": {"user_msg": "رسالة المستخدم", "translation": "الترجمة"},
+}
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-class TranslateView(View):
-    def __init__(self, text):
-        super().__init__(timeout=300)
-        self.text = text
-
-    @discord.ui.button(label="", emoji="🌐", style=discord.ButtonStyle.gray)
-    async def translate_button(self, interaction: discord.Interaction, button: Button):
-        lang = "en"
-        for role in interaction.user.roles:
-            if role.id in LANG_ROLES:
-                lang = LANG_ROLES[role.id]
-                break
-        
-        try:
-            t = GoogleTranslator(source="auto", target=lang).translate(self.text)
-            embed = discord.Embed(title="Ceviri", description=t)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"Hata: {str(e)}", ephemeral=True)
 
 @bot.event
 async def on_ready():
@@ -65,16 +58,45 @@ async def on_message(message):
     
     if message.content and not message.content.startswith("!"):
         try:
-            view = TranslateView(message.content)
-            await message.reply(
-                "‏",  # Zero-width space (görünmez)
-                view=view,
-                mention_author=False
-            )
+            await message.add_reaction("🌐")
         except Exception as e:
-            print(f"Hata: {e}")
+            print(f"Reaction hatasi: {e}")
     
     await bot.process_commands(message)
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    if user.bot:
+        return
+    
+    if str(reaction.emoji) != "🌐":
+        return
+    
+    message = reaction.message
+    
+    # Kullanici dilini bul
+    lang = "en"
+    for role in user.roles:
+        if role.id in LANG_ROLES:
+            lang = LANG_ROLES[role.id]
+            break
+    
+    # Dil etiketlerini al
+    labels = LANG_LABELS.get(lang, LANG_LABELS["en"])
+    user_msg_label = labels["user_msg"]
+    translation_label = labels["translation"]
+    
+    try:
+        # Ceviri yap
+        t = GoogleTranslator(source="auto", target=lang).translate(message.content)
+        
+        # DM mesajı olustur
+        dm_content = f"{user_msg_label} ➤ {message.author.mention}: {message.content}\n\n{translation_label}: {t}"
+        
+        await user.send(dm_content)
+        
+    except Exception as e:
+        print(f"Ceviri hatasi: {e}")
 
 if __name__ == "__main__":
     keep_alive()
