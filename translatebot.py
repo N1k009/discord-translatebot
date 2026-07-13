@@ -28,6 +28,7 @@ LANG_ROLES = {
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 class TV(View):
@@ -65,15 +66,45 @@ async def on_message(message):
     
     if message.content and not message.content.startswith("!"):
         try:
-            await message.reply(
-                "",
-                view=TV(message.content),
-                mention_author=False
-            )
+            # Mesaja tepki olarak emoji ekle
+            await message.add_reaction("🌐")
+            
+            # View'ı oluştur ama gönderme
+            view = TV(message.content)
+            
+            # Mesaja view'ı bağla (emoji ile tıklama için)
+            message.view = view
+            
         except Exception as e:
             print(f"Hata: {e}")
     
     await bot.process_commands(message)
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    if user.bot:
+        return
+    
+    if str(reaction.emoji) == "🌐":
+        message = reaction.message
+        
+        # Kullanici dilini bul
+        lang = "en"
+        for role in user.roles:
+            if role.id in LANG_ROLES:
+                lang = LANG_ROLES[role.id]
+                break
+        
+        try:
+            t = GoogleTranslator(source="auto", target=lang).translate(message.content)
+            embed = discord.Embed(title="Ceviri", description=t)
+            await message.reply(
+                embed=embed,
+                mention_author=False,
+                ephemeral=True
+            )
+        except Exception as e:
+            print(f"Ceviri hatasi: {e}")
 
 if __name__ == "__main__":
     keep_alive()
