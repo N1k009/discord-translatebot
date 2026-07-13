@@ -2,7 +2,6 @@ import discord
 import os
 import sys
 from discord.ext import commands
-from discord.ui import View, Button
 from deep_translator import GoogleTranslator
 from keep_alive import keep_alive
 
@@ -31,27 +30,6 @@ intents.members = True
 intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-class TV(View):
-    def __init__(self, text):
-        super().__init__(timeout=300)
-        self.text = text
-
-    @discord.ui.button(label="", emoji="🌐", style=discord.ButtonStyle.gray)
-    async def tr(self, interaction: discord.Interaction, button: Button):
-        lang = "en"
-        for r in interaction.user.roles:
-            if r.id in LANG_ROLES:
-                lang = LANG_ROLES[r.id]
-                break
-        try:
-            t = GoogleTranslator(source="auto", target=lang).translate(self.text)
-            await interaction.response.send_message(
-                embed=discord.Embed(title="Ceviri", description=t),
-                ephemeral=True
-            )
-        except Exception as e:
-            await interaction.response.send_message(f"Hata: {str(e)}", ephemeral=True)
-
 @bot.event
 async def on_ready():
     print(f"Bot Hazir: {bot.user}")
@@ -66,17 +44,9 @@ async def on_message(message):
     
     if message.content and not message.content.startswith("!"):
         try:
-            # Mesaja tepki olarak emoji ekle
             await message.add_reaction("🌐")
-            
-            # View'ı oluştur ama gönderme
-            view = TV(message.content)
-            
-            # Mesaja view'ı bağla (emoji ile tıklama için)
-            message.view = view
-            
         except Exception as e:
-            print(f"Hata: {e}")
+            print(f"Reaction hatasi: {e}")
     
     await bot.process_commands(message)
 
@@ -85,26 +55,24 @@ async def on_reaction_add(reaction, user):
     if user.bot:
         return
     
-    if str(reaction.emoji) == "🌐":
-        message = reaction.message
-        
-        # Kullanici dilini bul
-        lang = "en"
-        for role in user.roles:
-            if role.id in LANG_ROLES:
-                lang = LANG_ROLES[role.id]
-                break
-        
-        try:
-            t = GoogleTranslator(source="auto", target=lang).translate(message.content)
-            embed = discord.Embed(title="Ceviri", description=t)
-            await message.reply(
-                embed=embed,
-                mention_author=False,
-                ephemeral=True
-            )
-        except Exception as e:
-            print(f"Ceviri hatasi: {e}")
+    if str(reaction.emoji) != "🌐":
+        return
+    
+    message = reaction.message
+    
+    # Kullanici dilini bul
+    lang = "en"
+    for role in user.roles:
+        if role.id in LANG_ROLES:
+            lang = LANG_ROLES[role.id]
+            break
+    
+    try:
+        t = GoogleTranslator(source="auto", target=lang).translate(message.content)
+        embed = discord.Embed(title="Ceviri", description=t)
+        await message.channel.send(embed=embed)
+    except Exception as e:
+        print(f"Ceviri hatasi: {e}")
 
 if __name__ == "__main__":
     keep_alive()
