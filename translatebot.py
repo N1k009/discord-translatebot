@@ -4,7 +4,6 @@ import sys
 from discord.ext import commands
 from discord.ui import View, Button
 from deep_translator import GoogleTranslator
-from langdetect import detect
 from keep_alive import keep_alive
 
 # ==========================
@@ -34,21 +33,6 @@ LANG_ROLES = {
     1526233633650901132: "ar",
 }
 
-# Dil kodları karşılaştırması
-LANG_MAP = {
-    "az": "az",
-    "tr": "tr",
-    "en": "en",
-    "es": "es",
-    "fr": "fr",
-    "ru": "ru",
-    "de": "de",
-    "zh-CN": "zh-cn",
-    "zh": "zh-cn",
-    "hi": "hi",
-    "ar": "ar",
-}
-
 # ==========================
 # BOT AYARLARI
 # ==========================
@@ -63,37 +47,25 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ==========================
 
 class TranslateView(View):
-    def __init__(self, text, user_lang):
+    def __init__(self, text, target_lang):
         super().__init__(timeout=300)
         self.text = text
-        self.user_lang = user_lang
+        self.target_lang = target_lang
 
     @discord.ui.button(label="", emoji="🌐", style=discord.ButtonStyle.gray)
     async def translate_button(self, interaction: discord.Interaction, button: Button):
         """Ceviri butonuna tiklandiginda calisir"""
         
         try:
-            # Textin dilini tespit et
-            detected_lang = detect(self.text)
-            detected_lang = LANG_MAP.get(detected_lang, detected_lang)
-            
-            # Eger zaten kullanici dilindeyse cevir etme
-            if detected_lang == self.user_lang:
-                await interaction.response.send_message(
-                    f"Bu mesaj zaten {self.user_lang} dilinde!",
-                    ephemeral=True
-                )
-                return
-            
             # Ceviri yap
             translated = GoogleTranslator(
                 source="auto",
-                target=self.user_lang
+                target=self.target_lang
             ).translate(self.text)
             
-            # Sonucu goster
+            # Sonucu goster (ephemeral - sadece kullanici gorur)
             await interaction.response.send_message(
-                f"**Orijinal:** {self.text}\n\n**Ceviri:** {translated}",
+                f"**Orijinal:** {self.text}\n\n**Ceviri ({self.target_lang}):** {translated}",
                 ephemeral=True
             )
             
@@ -131,25 +103,24 @@ async def on_message(message):
     if not message.content.strip():
         return
     
-    # Kullanicinin dilini bul
-    user_lang = "en"
-    for role in message.author.roles:
-        if role.id in LANG_ROLES:
-            user_lang = LANG_ROLES[role.id]
-            break
-    
     # Komut degilse ceviri butonunu ekle
     if not message.content.startswith("!"):
         try:
-            # Mesajin dilini tespit et
-            detected_lang = detect(message.content)
-            detected_lang = LANG_MAP.get(detected_lang, detected_lang)
+            # Kullanicinin dilini bul
+            user_lang = "en"
+            for role in message.author.roles:
+                if role.id in LANG_ROLES:
+                    user_lang = LANG_ROLES[role.id]
+                    break
             
-            # Eger zaten kendi dilindeyse buton gosterme
-            if detected_lang != user_lang:
-                view = TranslateView(message.content, user_lang)
-                await message.add_reaction("🌐")
-                
+            # Ceviri butonunu ekle
+            view = TranslateView(message.content, user_lang)
+            await message.reply(
+                "",
+                view=view,
+                mention_author=False
+            )
+            
         except Exception as e:
             print(f"Hata: {e}")
     
