@@ -2,6 +2,7 @@ import discord
 import os
 import sys
 from discord.ext import commands
+from discord.ui import View, Button
 from deep_translator import GoogleTranslator
 from keep_alive import keep_alive
 
@@ -30,6 +31,26 @@ intents.members = True
 intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+class TranslateView(View):
+    def __init__(self, text):
+        super().__init__(timeout=300)
+        self.text = text
+
+    @discord.ui.button(label="", emoji="🌐", style=discord.ButtonStyle.gray)
+    async def translate_button(self, interaction: discord.Interaction, button: Button):
+        lang = "en"
+        for role in interaction.user.roles:
+            if role.id in LANG_ROLES:
+                lang = LANG_ROLES[role.id]
+                break
+        
+        try:
+            t = GoogleTranslator(source="auto", target=lang).translate(self.text)
+            embed = discord.Embed(title="Ceviri", description=t)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"Hata: {str(e)}", ephemeral=True)
+
 @bot.event
 async def on_ready():
     print(f"Bot Hazir: {bot.user}")
@@ -44,35 +65,16 @@ async def on_message(message):
     
     if message.content and not message.content.startswith("!"):
         try:
-            await message.add_reaction("🌐")
+            view = TranslateView(message.content)
+            await message.reply(
+                "‏",  # Zero-width space (görünmez)
+                view=view,
+                mention_author=False
+            )
         except Exception as e:
-            print(f"Reaction hatasi: {e}")
+            print(f"Hata: {e}")
     
     await bot.process_commands(message)
-
-@bot.event
-async def on_reaction_add(reaction, user):
-    if user.bot:
-        return
-    
-    if str(reaction.emoji) != "🌐":
-        return
-    
-    message = reaction.message
-    
-    # Kullanici dilini bul
-    lang = "en"
-    for role in user.roles:
-        if role.id in LANG_ROLES:
-            lang = LANG_ROLES[role.id]
-            break
-    
-    try:
-        t = GoogleTranslator(source="auto", target=lang).translate(message.content)
-        embed = discord.Embed(title="Ceviri", description=t)
-        await message.channel.send(embed=embed)
-    except Exception as e:
-        print(f"Ceviri hatasi: {e}")
 
 if __name__ == "__main__":
     keep_alive()
