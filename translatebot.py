@@ -35,7 +35,7 @@ class TV(View):
         super().__init__(timeout=300)
         self.text = text
 
-    @discord.ui.button(label="Cevir", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="", emoji="🌐", style=discord.ButtonStyle.gray)
     async def tr(self, interaction: discord.Interaction, button: Button):
         lang = "en"
         for r in interaction.user.roles:
@@ -66,7 +66,7 @@ async def on_message(message):
     if message.content and not message.content.startswith("!"):
         try:
             await message.reply(
-                "Bu mesaji cevirmek icin butona bas.",
+                "",
                 view=TV(message.content),
                 mention_author=False
             )
