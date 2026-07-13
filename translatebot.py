@@ -44,4 +44,3 @@ class TV(View):
                 break
         try:
             t = GoogleTranslator(source="auto", target=lang).translate(self
-
