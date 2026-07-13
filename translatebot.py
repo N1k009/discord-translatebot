@@ -43,4 +43,38 @@ class TV(View):
                 lang = LANG_ROLES[r.id]
                 break
         try:
-            t = GoogleTranslator(source="auto", target=lang).translate(self
+            t = GoogleTranslator(source="auto", target=lang).translate(self.text)
+            await interaction.response.send_message(
+                embed=discord.Embed(title="Ceviri", description=t),
+                ephemeral=True
+            )
+        except Exception as e:
+            await interaction.response.send_message(f"Hata: {str(e)}", ephemeral=True)
+
+@bot.event
+async def on_ready():
+    print(f"Bot Hazir: {bot.user}")
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+    
+    if not message.guild:
+        return
+    
+    if message.content and not message.content.startswith("!"):
+        try:
+            await message.reply(
+                "Bu mesaji cevirmek icin butona bas.",
+                view=TV(message.content),
+                mention_author=False
+            )
+        except Exception as e:
+            print(f"Hata: {e}")
+    
+    await bot.process_commands(message)
+
+if __name__ == "__main__":
+    keep_alive()
+    bot.run(TOKEN)
