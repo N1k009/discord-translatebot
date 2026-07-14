@@ -90,10 +90,13 @@ async def on_reaction_add(reaction, user):
         # Ceviri yap
         t = GoogleTranslator(source="auto", target=lang).translate(message.content)
         
-        # DM mesajı olustur
-        dm_content = f"{user_msg_label} ➤ {message.author.mention}: {message.content}\n\n{translation_label}: {t}"
+        # Embed yapısı oluşturma (Mavi renkli ve belirgin başlıklarla)
+        embed = discord.Embed(color=discord.Color.blue())
+        embed.add_field(name=f"🔵 {user_msg_label}", value=f"{message.author.mention}: {message.content}", inline=False)
+        embed.add_field(name=f"📖 {translation_label}", value=f"{t}", inline=False)
         
-        await user.send(dm_content)
+        # DM gönderme
+        await user.send(embed=embed)
         
     except Exception as e:
         print(f"Ceviri hatasi: {e}")
